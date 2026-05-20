@@ -5,7 +5,15 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out code...'
-                checkout scm
+                checkout([$class: 'GitSCM', 
+                    branches: [[name: '*/main']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/Tazanu/studyhub-elearning.git',
+                        credentialsId: 'github-credentials'
+                    ]]
+                ])
             }
         }
 
