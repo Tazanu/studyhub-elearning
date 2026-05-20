@@ -2,11 +2,33 @@ pipeline {
     agent any
 
     stages {
+        stage('Network Setup') {
+            steps {
+                echo 'Configuring network for GitHub access...'
+                script {
+                    try {
+                        sh '''
+                            echo "Configuring DNS for GitHub access..."
+                            echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf.backup || true
+                            echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf.backup || true
+                            sudo cp /etc/resolv.conf.backup /etc/resolv.conf || true
+                            nslookup github.com 8.8.8.8 || true
+                        '''
+                    } catch (Exception e) {
+                        echo "Network setup failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
 
         stage('Checkout') {
             steps {
                 echo 'Checking out code...'
-                checkout scm
+                retry(3) {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        checkout scm
+                    }
+                }
             }
         }
 
