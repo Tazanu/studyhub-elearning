@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'cirrusci/flutter:stable'
-            args '--user root'
-        }
-    }
+    agent any
 
     stages {
         stage('Checkout') {
@@ -16,32 +11,51 @@ pipeline {
 
         stage('Setup Flutter') {
             steps {
-                echo 'Flutter environment ready (using Docker image)'
-                sh 'flutter --version'
+                echo 'Setting up Flutter environment...'
+                sh '''
+                    if ! command -v flutter &> /dev/null; then
+                        echo "Installing Flutter..."
+                        cd /tmp
+                        curl -L -o flutter.tar.xz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.16.5-stable.tar.xz
+                        tar xf flutter.tar.xz
+                        export PATH="/tmp/flutter/bin:$PATH"
+                    fi
+                    flutter --version
+                '''
             }
         }
 
         stage('Flutter Doctor') {
             steps {
-                sh 'flutter doctor || true'
+                sh '''
+                    export PATH="/tmp/flutter/bin:$PATH"
+                    flutter doctor || true
+                '''
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'flutter pub get'
+                sh '''
+                    export PATH="/tmp/flutter/bin:$PATH"
+                    flutter pub get
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'flutter test || true'
+                sh '''
+                    export PATH="/tmp/flutter/bin:$PATH"
+                    flutter test || true
+                '''
             }
         }
 
         stage('Build Web') {
             steps {
                 sh '''
+                    export PATH="/tmp/flutter/bin:$PATH"
                     flutter config --enable-web
                     flutter build web --release
                 '''
