@@ -1,39 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../providers/groups_provider.dart';
+import '../widgets/create_group_dialog.dart';
 
-class StudySphereScreen extends StatelessWidget {
+class StudySphereScreen extends ConsumerWidget {
   const StudySphereScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final myGroups = ref.watch(myGroupsProvider);
+    final selectedGroupId = ref.watch(selectedGroupIdProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isTablet = screenWidth >= 768 && screenWidth < 1024;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundGray,
       body: Column(
         children: [
-          _Header(),
+          _Header(isMobile: isMobile),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _LeftSidebar(),
-                Expanded(child: _FeedColumn()),
-                _RightSidebar(),
-              ],
-            ),
+            child: isMobile
+                ? _buildMobileLayout(context, ref, myGroups, selectedGroupId)
+                : _buildDesktopLayout(context, ref, myGroups, selectedGroupId, isTablet),
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const CreateGroupDialog(),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Create Group'),
+        backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context, WidgetRef ref, myGroups, selectedGroupId) {
+    if (selectedGroupId == null) {
+      return const _EmptyState();
+    }
+    return _FeedColumn(selectedGroupId: selectedGroupId);
+  }
+
+  Widget _buildDesktopLayout(BuildContext context, WidgetRef ref, myGroups, selectedGroupId, isTablet) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _LeftSidebar(myGroups: myGroups, selectedGroupId: selectedGroupId, ref: ref, isTablet: isTablet),
+        Expanded(child: _FeedColumn(selectedGroupId: selectedGroupId)),
+        _RightSidebar(selectedGroupId: selectedGroupId),
+      ],
     );
   }
 }
 
 class _Header extends StatelessWidget {
+  final bool isMobile;
+
+  const _Header({required this.isMobile});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24),
       color: AppColors.backgroundWhite,
       child: Row(
         children: [
@@ -45,24 +83,25 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 8),
           const Text('StudySphere', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
           const SizedBox(width: 24),
-          Expanded(
-            child: Container(
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.backgroundGray,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.borderGray),
-              ),
-              child: const Row(
-                children: [
-                  SizedBox(width: 12),
-                  Icon(Icons.search, size: 18, color: AppColors.textTertiary),
-                  SizedBox(width: 8),
-                  Text('Search groups, posts...', style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
-                ],
+          if (!isMobile)
+            Expanded(
+              child: Container(
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundGray,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.borderGray),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(width: 12),
+                    Icon(Icons.search, size: 18, color: AppColors.textTertiary),
+                    SizedBox(width: 8),
+                    Text('Search groups, posts...', style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(width: 16),
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: AppColors.neutralLight), 
@@ -116,16 +155,19 @@ class _Header extends StatelessWidget {
 }
 
 class _LeftSidebar extends StatelessWidget {
+  final AsyncValue<List<Map<String, dynamic>>> myGroups;
+  final String? selectedGroupId;
+  final WidgetRef ref;
+  final bool isTablet;
+
+  const _LeftSidebar({required this.myGroups, required this.selectedGroupId, required this.ref, this.isTablet = false});
+
   @override
   Widget build(BuildContext context) {
-    final groups = [
-      (Colors.purple, 'B', 'Biology 101', '18 members', false),
-      (Colors.orange, 'C', 'Calculus II', '24 members', true),
-      (Colors.blue, 'W', 'World History', '31 members', false),
-    ];
-
+    final width = isTablet ? 220.0 : 260.0;
+    
     return Container(
-      width: 260,
+      width: width,
       color: AppColors.backgroundWhite,
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -156,7 +198,39 @@ class _LeftSidebar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          ...groups.map((g) => _GroupTile(color: g.$1, initial: g.$2, name: g.$3, members: g.$4, isSelected: g.$5)),
+          myGroups.when(
+            data: (groups) {
+              if (groups.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('No groups yet', style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+                      const SizedBox(height: 4),
+                      Text('Create or join a study group to get started', style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                children: groups.map((group) {
+                  final isSelected = group['id'] == selectedGroupId;
+                  return _GroupTile(
+                    groupId: group['id'],
+                    name: group['name'] ?? 'Unknown',
+                    members: '${(group['memberIds'] as List?)?.length ?? 0} members',
+                    isSelected: isSelected,
+                    onTap: () {
+                      ref.read(selectedGroupIdProvider.notifier).state = group['id'];
+                    },
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Text('Error: $error', style: const TextStyle(color: AppColors.error, fontSize: 12)),
+          ),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(14),
@@ -199,19 +273,27 @@ class _LeftSidebar extends StatelessWidget {
 }
 
 class _GroupTile extends StatelessWidget {
-  final Color color;
-  final String initial, name, members;
+  final String groupId;
+  final String name, members;
   final bool isSelected;
-  const _GroupTile({required this.color, required this.initial, required this.name, required this.members, required this.isSelected});
+  final VoidCallback onTap;
+
+  const _GroupTile({
+    required this.groupId,
+    required this.name,
+    required this.members,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colors = [Colors.purple, Colors.orange, Colors.blue, Colors.green, Colors.red, Colors.teal];
+    final colorIndex = groupId.hashCode.abs() % colors.length;
+    final color = colors[colorIndex];
+
     return GestureDetector(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Switched to $name group')),
-        );
-      },
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -223,18 +305,20 @@ class _GroupTile extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 16, backgroundColor: color.withOpacity(0.2),
-              child: Text(initial, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+              child: Text(name.substring(0, 1).toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13)),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: TextStyle(
-                  fontSize: 13, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                )),
-                Text(members, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: TextStyle(
+                    fontSize: 13, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  ), overflow: TextOverflow.ellipsis),
+                  Text(members, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                ],
+              ),
             ),
           ],
         ),
@@ -244,10 +328,17 @@ class _GroupTile extends StatelessWidget {
 }
 
 class _FeedColumn extends StatelessWidget {
+  final String? selectedGroupId;
+
+  const _FeedColumn({required this.selectedGroupId});
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 12 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -255,30 +346,39 @@ class _FeedColumn extends StatelessWidget {
           const SizedBox(height: 16),
           _FilterTabs(),
           const SizedBox(height: 16),
-          _PostCard(
-            author: 'Dr. Emily Chen',
-            time: '2 hours ago',
-            group: 'Calculus II',
-            title: 'Integration by Parts - Practice Problems',
-            content: 'Here are some practice problems for our upcoming midterm. Focus on problems 3-7 as they cover the most common exam patterns.',
-            hasFile: true,
-            fileName: 'Integration_Practice.pdf',
-            fileSize: '1.2 MB',
-            likes: 24,
-            comments: 8,
+          if (selectedGroupId == null)
+            const _EmptyState()
+          else
+            _GroupContent(groupId: selectedGroupId!),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderGray),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.groups_outlined, size: 64, color: AppColors.textTertiary.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          const Text(
+            'Select a group to view content',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
           ),
-          const SizedBox(height: 12),
-          _PostCard(
-            author: 'Marcus Johnson',
-            time: '5 hours ago',
-            group: 'Calculus II',
-            title: 'Question about Taylor Series convergence',
-            content: 'Can someone explain when a Taylor series converges? I\'m confused about the radius of convergence concept.',
-            hasFile: false,
-            fileName: '',
-            fileSize: '',
-            likes: 12,
-            comments: 15,
+          const SizedBox(height: 8),
+          Text(
+            'Choose a group from the sidebar or create a new one',
+            style: TextStyle(fontSize: 14, color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -286,7 +386,269 @@ class _FeedColumn extends StatelessWidget {
   }
 }
 
-class _PostComposer extends StatelessWidget {
+class _GroupContent extends StatelessWidget {
+  final String groupId;
+
+  const _GroupContent({required this.groupId});
+
+  @override
+  Widget build(BuildContext context) {
+    final posts = [];
+
+    return Column(
+      children: [
+        _PostCard(
+          author: 'Dr. Emily Chen',
+          time: '2 hours ago',
+          group: 'Calculus II',
+          title: 'Integration by Parts - Practice Problems',
+          content: 'Here are some practice problems for our upcoming midterm. Focus on problems 3-7 as they cover the most common exam patterns.',
+          hasFile: true,
+          fileName: 'Integration_Practice.pdf',
+          fileSize: '1.2 MB',
+          likes: 24,
+          comments: 8,
+        ),
+        const SizedBox(height: 12),
+        _PostCard(
+          author: 'Marcus Johnson',
+          time: '5 hours ago',
+          group: 'Calculus II',
+          title: 'Question about Taylor Series convergence',
+          content: 'Can someone explain when a Taylor series converges? I\'m confused about the radius of convergence concept.',
+          hasFile: false,
+          fileName: '',
+          fileSize: '',
+          likes: 12,
+          comments: 15,
+        ),
+      ],
+    );
+  }
+}
+
+class _PostComposer extends StatefulWidget {
+  @override
+  State<_PostComposer> createState() => _PostComposerState();
+}
+
+class _PostComposerState extends State<_PostComposer> {
+  void _showCreatePostDialog({String? initialContent, String? attachmentName}) {
+    final contentController = TextEditingController(text: initialContent ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Create Post', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: contentController,
+                  decoration: const InputDecoration(
+                    labelText: 'What\'s on your mind?',
+                    hintText: 'Share something with your group...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 5,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter some content';
+                    }
+                    return null;
+                  },
+                ),
+                if (attachmentName != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundGray,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.attach_file, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            attachmentName,
+                            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 16),
+                          onPressed: () {
+                            // Remove attachment - would need state management for this
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogContext);
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Creating post...'), backgroundColor: AppColors.info),
+                );
+                
+                // Simulate post creation delay
+                await Future.delayed(const Duration(seconds: 1));
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Post created successfully!'), backgroundColor: AppColors.accent),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Post', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickFile() async {
+    // This would use file_picker to select a file
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Select a file to attach...'), backgroundColor: AppColors.info),
+    );
+    // In a real implementation:
+    // FilePickerResult? result = await FilePicker.platform.pickFiles();
+    // if (result != null) {
+    //   _showCreatePostDialog(attachmentName: result.files.single.name);
+    // }
+  }
+
+  Future<void> _pickImage() async {
+    // This would use image_picker to select an image
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Select an image to share...'), backgroundColor: AppColors.info),
+    );
+    // In a real implementation:
+    // final ImagePicker picker = ImagePicker();
+    // final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    // if (image != null) {
+    //   _showCreatePostDialog(attachmentName: image.name);
+    // }
+  }
+
+  Future<void> _createEvent() async {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setDialogState) => AlertDialog(
+          title: const Text('Create Event', style: TextStyle(fontWeight: FontWeight.w700)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Event Title *',
+                    hintText: 'e.g., Study Session',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'What is this event about?',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('Date'),
+                  subtitle: Text('${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Time'),
+                  subtitle: Text(selectedTime.format(builderContext)),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: dialogContext,
+                      initialTime: selectedTime,
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedTime = picked);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.trim().isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Event created successfully!'),
+                      backgroundColor: AppColors.accent,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Create Event', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -305,41 +667,7 @@ class _PostComposer extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Create Post'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const TextField(
-                              decoration: InputDecoration(
-                                labelText: 'What\'s on your mind?',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: 3,
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Post created successfully!')),
-                              );
-                            },
-                            child: const Text('Post'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onTap: () => _showCreatePostDialog(),
                   child: Container(
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -358,14 +686,32 @@ class _PostComposer extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _ComposerAction(icon: Icons.attach_file, label: 'File'),
-              const SizedBox(width: 8),
-              _ComposerAction(icon: Icons.image_outlined, label: 'Image'),
-              const SizedBox(width: 8),
-              _ComposerAction(icon: Icons.calendar_today_outlined, label: 'Event'),
+              IconButton(
+                icon: const Icon(Icons.attach_file, size: 16, color: AppColors.textSecondary),
+                onPressed: _pickFile,
+                tooltip: 'Attach File',
+              ),
+              const SizedBox(width: 4),
+              Text('File', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.image_outlined, size: 16, color: AppColors.textSecondary),
+                onPressed: _pickImage,
+                tooltip: 'Share Image',
+              ),
+              const SizedBox(width: 4),
+              Text('Image', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textSecondary),
+                onPressed: _createEvent,
+                tooltip: 'Create Event',
+              ),
+              const SizedBox(width: 4),
+              Text('Event', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const Spacer(),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () => _showCreatePostDialog(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -529,48 +875,65 @@ class _EngageBtn extends StatelessWidget {
 }
 
 class _RightSidebar extends StatelessWidget {
+  final String? selectedGroupId;
+
+  const _RightSidebar({required this.selectedGroupId});
+
   @override
   Widget build(BuildContext context) {
-    final members = [
-      ('Dr. Emily Chen', true),
-      ('Marcus Johnson', false),
-      ('Sarah Williams', false),
-      ('James Park', false),
-    ];
-
     return Container(
       width: 280,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Members (12)', style: AppTextStyles.heading4),
+          Text('Quick Actions', style: AppTextStyles.heading4),
           const SizedBox(height: 10),
-          ...members.map((m) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16, backgroundColor: AppColors.primary.withOpacity(0.15),
-                  child: Text(m.$1[0], style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12)),
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: Text(m.$1, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary))),
-                if (m.$2)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                    child: const Text('ADMIN', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                  ),
-              ],
+          _QuickAction(
+            icon: Icons.add_circle_outline,
+            label: 'Create Group',
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => const CreateGroupDialog(),
+              );
+            },
+          ),
+          _QuickAction(
+            icon: Icons.search,
+            label: 'Find Groups',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Browse all groups feature coming soon')),
+              );
+            },
+          ),
+          if (selectedGroupId != null) ...[
+            const SizedBox(height: 20),
+            Text('Group Actions', style: AppTextStyles.heading4),
+            const SizedBox(height: 10),
+            _QuickAction(
+              icon: Icons.chat,
+              label: 'Open Chat',
+              onTap: () {
+                context.go('/group/$selectedGroupId/manage');
+              },
             ),
-          )),
-          const SizedBox(height: 20),
-          Text('Shared Files', style: AppTextStyles.heading4),
-          const SizedBox(height: 10),
-          _FileItem(icon: Icons.picture_as_pdf, color: const Color(0xFFEF4444), name: 'Midterm_Guide.pdf', size: '3.2 MB'),
-          const SizedBox(height: 6),
-          _FileItem(icon: Icons.description, color: const Color(0xFF3B82F6), name: 'Formula_Sheet.docx', size: '0.8 MB'),
+            _QuickAction(
+              icon: Icons.library_books,
+              label: 'View Notes',
+              onTap: () {
+                context.go('/group/$selectedGroupId/notes?name=Group');
+              },
+            ),
+            _QuickAction(
+              icon: Icons.people,
+              label: 'Manage Members',
+              onTap: () {
+                context.go('/group/$selectedGroupId/manage');
+              },
+            ),
+          ],
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(14),
@@ -615,26 +978,21 @@ class _RightSidebar extends StatelessWidget {
   }
 }
 
-class _FileItem extends StatelessWidget {
+class _QuickAction extends StatelessWidget {
   final IconData icon;
-  final Color color;
-  final String name, size;
-  const _FileItem({required this.icon, required this.color, required this.name, required this.size});
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
-            Text(size, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
-          ],
-        )),
-      ],
+    return ListTile(
+      leading: Icon(icon, size: 18, color: AppColors.textSecondary),
+      title: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+      dense: true,
     );
   }
 }

@@ -10,6 +10,8 @@ class FirestoreService {
   static CollectionReference get questions => _db.collection('questions');
   static CollectionReference get notes => _db.collection('notes');
   static CollectionReference get tutors => _db.collection('tutors');
+  static CollectionReference get messages => _db.collection('messages');
+  static CollectionReference get groupNotes => _db.collection('groupNotes');
 
   // ── User ─────────────────────────────────────────────────
   static Future<void> createUser(String uid, Map<String, dynamic> data) =>
@@ -28,13 +30,28 @@ class FirestoreService {
       .snapshots();
 
   static Future<DocumentReference> createGroup(Map<String, dynamic> data) =>
-      groups.add({...data, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()});
+      groups.add({...data, 'memberIds': data['memberIds'] ?? [], 'adminId': data['adminId'], 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()});
 
   static Future<void> joinGroup(String groupId, String uid) =>
       groups.doc(groupId).update({'memberIds': FieldValue.arrayUnion([uid])});
 
   static Future<void> leaveGroup(String groupId, String uid) =>
       groups.doc(groupId).update({'memberIds': FieldValue.arrayRemove([uid])});
+
+  static Future<void> updateGroup(String groupId, Map<String, dynamic> data) =>
+      groups.doc(groupId).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+
+  static Future<void> removeMember(String groupId, String uid) =>
+      groups.doc(groupId).update({'memberIds': FieldValue.arrayRemove([uid])});
+
+  static Future<void> deleteGroup(String groupId) =>
+      groups.doc(groupId).delete();
+
+  static Future<DocumentSnapshot> getGroup(String groupId) =>
+      groups.doc(groupId).get();
+
+  static Stream<DocumentSnapshot> streamGroup(String groupId) =>
+      groups.doc(groupId).snapshots();
 
   // ── Posts ─────────────────────────────────────────────────
   static Stream<QuerySnapshot> streamPosts(String groupId) => posts
@@ -50,6 +67,33 @@ class FirestoreService {
 
   static Future<void> unlikePost(String postId, String uid) =>
       posts.doc(postId).update({'likes': FieldValue.arrayRemove([uid])});
+
+  // ── Messages (Real-time Chat) ─────────────────────────────
+  static Stream<QuerySnapshot> streamMessages(String groupId) => messages
+      .where('groupId', isEqualTo: groupId)
+      .orderBy('createdAt', descending: false)
+      .snapshots();
+
+  static Future<DocumentReference> sendMessage(Map<String, dynamic> data) =>
+      messages.add({...data, 'createdAt': FieldValue.serverTimestamp(), 'isRead': false});
+
+  static Future<void> markMessageAsRead(String messageId) =>
+      messages.doc(messageId).update({'isRead': true});
+
+  // ── Group Notes (Files in groups) ─────────────────────────
+  static Stream<QuerySnapshot> streamGroupNotes(String groupId) => groupNotes
+      .where('groupId', isEqualTo: groupId)
+      .orderBy('createdAt', descending: true)
+      .snapshots();
+
+  static Future<DocumentReference> uploadGroupNote(Map<String, dynamic> data) =>
+      groupNotes.add({...data, 'createdAt': FieldValue.serverTimestamp()});
+
+  static Future<void> deleteGroupNote(String noteId) =>
+      groupNotes.doc(noteId).delete();
+
+  static Future<DocumentSnapshot> getGroupNote(String noteId) =>
+      groupNotes.doc(noteId).get();
 
   // ── Questions ─────────────────────────────────────────────
   static Stream<QuerySnapshot> streamQuestions({String? tag}) {

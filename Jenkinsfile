@@ -1,5 +1,10 @@
 pipeline {
     agent any
+    
+    environment {
+        FLUTTER_HOME = '/var/jenkins_home/flutter'
+        PATH = "${FLUTTER_HOME}/bin:${PATH}"
+    }
 
     stages {
         stage('Checkout') {
@@ -17,56 +22,69 @@ pipeline {
             }
         }
 
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing required system packages...'
+                sh '''
+                    # Install xz-utils if not present
+                    if ! command -v xz &> /dev/null; then
+                        echo "Installing xz-utils..."
+                        apt-get update -qq
+                        apt-get install -y xz-utils curl git unzip
+                    fi
+                '''
+            }
+        }
+
         stage('Setup Flutter') {
             steps {
                 echo 'Setting up Flutter environment...'
                 sh '''
-                    if ! command -v flutter &> /dev/null; then
-                        echo "Installing Flutter..."
-                        cd /tmp
+                    if [ ! -d "${FLUTTER_HOME}" ]; then
+                        echo "Installing Flutter for the first time..."
+                        mkdir -p /var/jenkins_home
+                        cd /var/jenkins_home
                         curl -L -o flutter.tar.xz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.16.5-stable.tar.xz
-                        # Use tar with -I option for xz compression
-                        tar -I xz -xf flutter.tar.xz
-                        export PATH="/tmp/flutter/bin:$PATH"
+                        tar xf flutter.tar.xz
+                        rm flutter.tar.xz
+                        echo "Flutter installed successfully!"
+                    else
+                        echo "Flutter already installed, skipping download..."
                     fi
+                    
                     flutter --version
+                    flutter config --no-analytics
                 '''
             }
         }
 
         stage('Flutter Doctor') {
             steps {
-                sh '''
-                    export PATH="/tmp/flutter/bin:$PATH"
-                    flutter doctor || true
-                '''
+                echo 'Running Flutter Doctor...'
+                sh 'flutter doctor -v || true'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Get Flutter Dependencies') {
             steps {
-                sh '''
-                    export PATH="/tmp/flutter/bin:$PATH"
-                    flutter pub get
-                '''
+                echo 'Installing Flutter dependencies...'
+                sh 'flutter pub get'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''
-                    export PATH="/tmp/flutter/bin:$PATH"
-                    flutter test || true
-                '''
+                echo 'Running Flutter tests...'
+                sh 'flutter test || true'
             }
         }
 
         stage('Build Web') {
             steps {
+                echo 'Building Flutter web app...'
                 sh '''
-                    export PATH="/tmp/flutter/bin:$PATH"
                     flutter config --enable-web
-                    flutter build web --release
+                    flutter build web --release --verbose
                 '''
             }
         }

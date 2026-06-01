@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../providers/forum_provider.dart';
 
 class _TagData {
   final String name;
@@ -13,20 +15,88 @@ class _ContributorData {
   const _ContributorData(this.rank, this.name, this.points);
 }
 
-class DevForumScreen extends StatelessWidget {
+class DevForumScreen extends ConsumerWidget {
   const DevForumScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isTablet = screenWidth >= 768 && screenWidth < 1024;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundGray,
-      body: Row(
-        children: [
-          const _LeftSidebar(),
-          Expanded(child: _MainContent()),
-          const _RightSidebar(),
-        ],
+      body: ResponsiveLayout(
+        isMobile: isMobile,
+        isTablet: isTablet,
+        leftSidebar: isMobile ? null : const _LeftSidebar(),
+        mainContent: _MainContent(),
+        rightSidebar: isMobile ? null : const _RightSidebar(),
       ),
+    );
+  }
+}
+
+class ResponsiveLayout extends StatelessWidget {
+  final bool isMobile;
+  final bool isTablet;
+  final Widget? leftSidebar;
+  final Widget mainContent;
+  final Widget? rightSidebar;
+
+  const ResponsiveLayout({
+    required this.isMobile,
+    required this.isTablet,
+    this.leftSidebar,
+    required this.mainContent,
+    this.rightSidebar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMobile) {
+      return Stack(
+        children: [
+          mainContent,
+          if (leftSidebar != null) ...[
+            // Mobile drawer will be handled by scaffold
+          ],
+        ],
+      );
+    }
+
+    if (isTablet) {
+      return Row(
+        children: [
+          if (leftSidebar != null)
+            SizedBox(
+              width: 200,
+              child: leftSidebar,
+            ),
+          Expanded(child: mainContent),
+          if (rightSidebar != null)
+            SizedBox(
+              width: 220,
+              child: rightSidebar,
+            ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        if (leftSidebar != null)
+          const SizedBox(
+            width: 240,
+            child: _LeftSidebar(),
+          ),
+        Expanded(child: mainContent),
+        if (rightSidebar != null)
+          const SizedBox(
+            width: 260,
+            child: _RightSidebar(),
+          ),
+      ],
     );
   }
 }
@@ -138,20 +208,23 @@ class _StatRow extends StatelessWidget {
   }
 }
 
-class _MainContent extends StatelessWidget {
+class _MainContent extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
           color: AppColors.backgroundWhite,
           child: Row(
             children: [
-              const Text('Top Questions', style: AppTextStyles.heading2),
+              Text('Top Questions', style: isMobile ? AppTextStyles.heading3 : AppTextStyles.heading2),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _showAskQuestionDialog(context, ref),
                 icon: const Icon(Icons.add, size: 16, color: Colors.white),
                 label: const Text('Ask Question', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 style: ElevatedButton.styleFrom(
@@ -165,7 +238,7 @@ class _MainContent extends StatelessWidget {
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isMobile ? 12 : 20),
             child: Column(
               children: [
                 const _SearchBar(),
@@ -211,6 +284,111 @@ class _MainContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showAskQuestionDialog(BuildContext context, WidgetRef ref) {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    final tagsController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ask a Question', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Question Title *',
+                    hintText: 'What is your question?',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a question title';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: contentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Question Details *',
+                    hintText: 'Provide details about your question...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 5,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please provide question details';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: tagsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tags',
+                    hintText: 'javascript, react, flutter (comma separated)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final tags = tagsController.text
+                    .split(',')
+                    .map((t) => t.trim().toLowerCase())
+                    .where((t) => t.isNotEmpty)
+                    .toList();
+
+                await ref.read(askQuestionProvider({
+                  'title': titleController.text.trim(),
+                  'content': contentController.text.trim(),
+                  'tags': tags,
+                  'preview': contentController.text.trim().length > 150
+                      ? '${contentController.text.trim().substring(0, 150)}...'
+                      : contentController.text.trim(),
+                }).future);
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Question posted successfully!'),
+                      backgroundColor: AppColors.accent,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Post Question', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -270,64 +448,122 @@ class _QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.borderGray)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
+      child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            _MetricBox(value: '$votes', label: 'votes'),
+            const SizedBox(height: 8),
+            _MetricBox(value: '$answers', label: 'answers', highlight: isSolved),
+            const SizedBox(height: 8),
+            _MetricBox(value: '$views', label: 'views'),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _MetricBox(value: '$votes', label: 'votes'),
+              Row(
+                children: [
+                  Expanded(child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary))),
+                  if (isSolved)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: AppColors.successLight, borderRadius: BorderRadius.circular(4)),
+                      child: const Text('SOLVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.success)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(preview, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                children: tags.map((t) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: t.bg, borderRadius: BorderRadius.circular(4)),
+                  child: Text('#${t.name}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: t.fg)),
+                )).toList(),
+              ),
               const SizedBox(height: 8),
-              _MetricBox(value: '$answers', label: 'answers', highlight: isSolved),
-              const SizedBox(height: 8),
-              _MetricBox(value: '$views', label: 'views'),
+              Row(
+                children: [
+                  const CircleAvatar(radius: 10, backgroundColor: AppColors.primary,
+                    child: Text('A', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700))),
+                  const SizedBox(width: 6),
+                  Text(author, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  const Spacer(),
+                  Text(time, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                ],
+              ),
             ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary))),
-                    if (isSolved)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: AppColors.successLight, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('SOLVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.success)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(preview, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  children: tags.map((t) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: t.bg, borderRadius: BorderRadius.circular(4)),
-                    child: Text('#${t.name}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: t.fg)),
-                  )).toList(),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const CircleAvatar(radius: 10, backgroundColor: AppColors.primary,
-                      child: Text('A', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700))),
-                    const SizedBox(width: 6),
-                    Text(author, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    const Spacer(),
-                    Text(time, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary))),
+            if (isSolved)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: AppColors.successLight, borderRadius: BorderRadius.circular(4)),
+                child: const Text('SOLVED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.success)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(preview, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 4,
+          children: tags.map((t) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: t.bg, borderRadius: BorderRadius.circular(4)),
+            child: Text('#${t.name}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: t.fg)),
+          )).toList(),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const CircleAvatar(radius: 8, backgroundColor: AppColors.primary,
+              child: Text('A', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700))),
+            const SizedBox(width: 4),
+            Text(author, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            const Spacer(),
+            Text(time, style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _MetricBox(value: '$votes', label: 'votes', isSmall: true),
+            const SizedBox(width: 12),
+            _MetricBox(value: '$answers', label: 'answers', highlight: isSolved, isSmall: true),
+            const SizedBox(width: 12),
+            _MetricBox(value: '$views', label: 'views', isSmall: true),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -335,12 +571,13 @@ class _QuestionCard extends StatelessWidget {
 class _MetricBox extends StatelessWidget {
   final String value, label;
   final bool highlight;
-  const _MetricBox({required this.value, required this.label, this.highlight = false});
+  final bool isSmall;
+  const _MetricBox({required this.value, required this.label, this.highlight = false, this.isSmall = false});
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 56,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      width: isSmall ? 40 : 56,
+      padding: EdgeInsets.symmetric(vertical: isSmall ? 2 : 4),
       decoration: BoxDecoration(
         color: highlight ? AppColors.successLight : Colors.transparent,
         borderRadius: BorderRadius.circular(4),
@@ -348,8 +585,8 @@ class _MetricBox extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: highlight ? AppColors.success : AppColors.textPrimary)),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
+          Text(value, style: TextStyle(fontSize: isSmall ? 12 : 16, fontWeight: FontWeight.w700, color: highlight ? AppColors.success : AppColors.textPrimary)),
+          Text(label, style: TextStyle(fontSize: isSmall ? 8 : 10, color: AppColors.textTertiary)),
         ],
       ),
     );
