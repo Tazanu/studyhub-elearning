@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/study_hub_provider.dart';
 
@@ -13,6 +14,7 @@ class StudyHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isMobile = ResponsiveHelper.isMobile(context);
     final user = ref.watch(currentUserProvider).value;
     final name = user?.displayName ?? 'Alex';
     final hour = DateTime.now().hour;
@@ -20,75 +22,65 @@ class StudyHubScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundGray,
-      body: Row(
-        children: [
-          _LeftSidebar(ref: ref),
-          Expanded(
-            child: Column(
-              children: [
-                _TopBar(greeting: '$greeting, $name! 👋'),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _MainContent()),
-                      _RightSidebar(),
+      body: isMobile
+          ? _MobileLayout(
+              greeting: '$greeting, $name! 👋',
+              ref: ref,
+            )
+          : _DesktopLayout(
+              greeting: '$greeting, $name! 👋',
+              ref: ref,
+            ),
+      floatingActionButton: isMobile
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Create Post'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Post Title',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Post Content',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 3,
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Post created successfully!')),
+                          );
+                        },
+                        child: const Text('Post'),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Create Post',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Create Post'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Post Title',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Post Content',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Post created successfully!')),
-                    );
-                  },
-                  child: const Text('Post'),
-                ),
-              ],
-            ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Create Post',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-      ),
     );
   }
 }
