@@ -7,6 +7,7 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../forum/presentation/screens/question_detail_screen.dart';
 import '../providers/study_hub_provider.dart';
 
 class StudyHubScreen extends ConsumerWidget {
@@ -246,7 +247,11 @@ class _MobileTabRow extends StatelessWidget {
         const SizedBox(width: 8),
         _MobileTab(label: 'Groups', isActive: true, onTap: () => context.go('/groups')),
         const SizedBox(width: 8),
-        _MobileTab(label: 'Q&A', isActive: false, onTap: () => context.go('/forum')),
+        _MobileTab(label: 'Notes', isActive: false, onTap: () => context.go('/marketplace')),
+        const SizedBox(width: 8),
+        _MobileTab(label: 'Forum', isActive: false, onTap: () => context.go('/forum')),
+        const SizedBox(width: 8),
+        _MobileTab(label: 'Tutors', isActive: false, onTap: () => context.go('/tutors')),
       ],
     );
   }
@@ -738,9 +743,13 @@ class _TabRow extends StatelessWidget {
           );
         }),
         const SizedBox(width: 8),
-        _Tab(label: 'Study Groups', isActive: true, onTap: () => context.go('/groups')),
+        _Tab(label: 'Groups', isActive: true, onTap: () => context.go('/groups')),
         const SizedBox(width: 8),
-        _Tab(label: 'Q&A', isActive: false, onTap: () => context.go('/forum')),
+        _Tab(label: 'Notes', isActive: false, onTap: () => context.go('/marketplace')),
+        const SizedBox(width: 8),
+        _Tab(label: 'Forum', isActive: false, onTap: () => context.go('/forum')),
+        const SizedBox(width: 8),
+        _Tab(label: 'Tutors', isActive: false, onTap: () => context.go('/tutors')),
       ],
     );
   }
@@ -935,7 +944,19 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go('/forum'),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuestionDetailScreen(
+            questionId: '',
+            questionTitle: title,
+            questionContent: preview,
+            author: author,
+            time: time,
+            tags: tags,
+          ),
+        ),
+      ),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
