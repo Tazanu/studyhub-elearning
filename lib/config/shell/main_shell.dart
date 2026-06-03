@@ -23,42 +23,40 @@ class MainShell extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: isMobile
-          ? NavigationBar(
-              selectedIndex: _selectedIndex(context),
-              onDestinationSelected: (i) {
-                final routes = ['/dashboard', '/groups', '/forum', '/marketplace', '/tutors'];
-                context.go(routes[i]);
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined), 
-                  selectedIcon: Icon(Icons.home, color: AppColors.primary), 
-                  label: 'Hub'
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.groups_outlined), 
-                  selectedIcon: Icon(Icons.groups, color: AppColors.primary), 
-                  label: 'Groups'
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.forum_outlined), 
-                  selectedIcon: Icon(Icons.forum, color: AppColors.primary), 
-                  label: 'Forum'
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.library_books_outlined), 
-                  selectedIcon: Icon(Icons.library_books, color: AppColors.primary), 
-                  label: 'Notes'
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.school_outlined), 
-                  selectedIcon: Icon(Icons.school, color: AppColors.primary), 
-                  label: 'Tutors'
-                ),
-              ],
-            )
-          : null,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex(context),
+        onDestinationSelected: (i) {
+          final routes = ['/dashboard', '/groups', '/forum', '/marketplace', '/tutors'];
+          context.go(routes[i]);
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined), 
+            selectedIcon: Icon(Icons.home, color: AppColors.primary), 
+            label: 'Hub'
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined), 
+            selectedIcon: Icon(Icons.groups, color: AppColors.primary), 
+            label: 'Groups'
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.forum_outlined), 
+            selectedIcon: Icon(Icons.forum, color: AppColors.primary), 
+            label: 'Forum'
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.library_books_outlined), 
+            selectedIcon: Icon(Icons.library_books, color: AppColors.primary), 
+            label: 'Notes'
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined), 
+            selectedIcon: Icon(Icons.school, color: AppColors.primary), 
+            label: 'Tutors'
+          ),
+        ],
+      ),
     );
   }
 }
