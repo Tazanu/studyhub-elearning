@@ -179,6 +179,7 @@ class _GroupNotesScreenState extends ConsumerState<GroupNotesScreen> {
   Widget build(BuildContext context) {
     final notes = ref.watch(groupNotesProvider(widget.groupId));
     final currentUserId = ref.watch(currentUserProvider).value?.uid;
+    final isMobile = MediaQuery.of(context).size.width < 768;
 
     return Scaffold(
       appBar: AppBar(
@@ -194,13 +195,15 @@ class _GroupNotesScreenState extends ConsumerState<GroupNotesScreen> {
               child: const Icon(Icons.library_books, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(widget.groupName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                const Text('Shared Notes', style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(widget.groupName, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                  const Text('Shared Notes', style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                ],
+              ),
             ),
           ],
         ),
@@ -319,6 +322,7 @@ class _GroupNotesScreenState extends ConsumerState<GroupNotesScreen> {
     final fileType = note['fileType'] ?? 'other';
     final fileSize = note['fileSize'] ?? 0;
     final isOwner = note['uploadedBy'] == currentUserId;
+    final isMobile = MediaQuery.of(context).size.width < 768;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -358,19 +362,24 @@ class _GroupNotesScreenState extends ConsumerState<GroupNotesScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(
-                          _formatFileSize(fileSize),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textTertiary,
+                        Expanded(
+                          child: Text(
+                            _formatFileSize(fileSize),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
                           ),
                         ),
                         const Text(' • ', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
-                        Text(
-                          note['uploaderName'] ?? 'Unknown',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textTertiary,
+                        Expanded(
+                          child: Text(
+                            note['uploaderName'] ?? 'Unknown',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const Text(' • ', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),

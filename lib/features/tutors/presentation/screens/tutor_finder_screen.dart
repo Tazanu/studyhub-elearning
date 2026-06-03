@@ -133,11 +133,12 @@ class _NavLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: isMobile ? const EdgeInsets.symmetric(horizontal: 8) : const EdgeInsets.symmetric(horizontal: 12),
       child: Text(label,
           style: const TextStyle(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary)),
     );
@@ -160,13 +161,18 @@ class _SearchRow extends StatelessWidget {
           border: Border.all(color: AppColors.borderGray),
           boxShadow: [BoxShadow(color: AppColors.shadowLight, blurRadius: 8)],
         ),
-        child: const Row(
+        child: Row(
           children: [
-            SizedBox(width: 16),
-            Icon(Icons.search, size: 20, color: AppColors.textTertiary),
-            SizedBox(width: 10),
-            Text("Try 'Python' or 'Algebra'",
-                style: TextStyle(fontSize: 14, color: AppColors.textTertiary)),
+            const SizedBox(width: 16),
+            const Icon(Icons.search, size: 20, color: AppColors.textTertiary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Try 'Python' or 'Algebra'",
+                style: const TextStyle(fontSize: 14, color: AppColors.textTertiary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -187,10 +193,12 @@ class _FilterSidebar extends StatelessWidget {
       'English Literature'
     ];
 
+    final isMobile = MediaQuery.of(context).size.width < 768;
+
     return Container(
-      width: 280,
+      width: isMobile ? 240 : 280,
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -201,109 +209,117 @@ class _FilterSidebar extends StatelessWidget {
               offset: const Offset(0, 2))
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Find your perfect tutor', style: AppTextStyles.heading3),
-          const SizedBox(height: 4),
-          const Text('4,342 qualified tutors available',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
-          const SizedBox(height: 20),
-          const Text('SUBJECTS', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          ...subjects.map(
-              (s) => _FilterCheckbox(label: s, checked: s == 'Mathematics')),
-          const SizedBox(height: 16),
-          const Text('PRICE RANGE', style: AppTextStyles.overline),
-          const SizedBox(height: 4),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('\$15/hr',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary)),
-              Text('\$85/hr',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary)),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppColors.primary,
-                thumbColor: AppColors.primary),
-            child: Slider(value: 0.5, onChanged: (_) {}),
-          ),
-          const SizedBox(height: 16),
-          const Text('AVAILABILITY', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: ['Morning', 'Afternoon', 'Evening', 'Weekend']
-                .map((a) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: a == 'Morning'
-                            ? AppColors.primary.withOpacity(0.1)
-                            : AppColors.backgroundGray,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: a == 'Morning'
-                                ? AppColors.primary
-                                : AppColors.borderGray),
-                      ),
-                      child: Text(a,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: a == 'Morning'
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                          )),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 16),
-          const Text('NATIVE LANGUAGE', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderGray),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Find your perfect tutor', style: AppTextStyles.heading3),
+            const SizedBox(height: 4),
+            const Text('4,342 qualified tutors available',
+                style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+            const SizedBox(height: 16),
+            const Text('SUBJECTS', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            ...subjects.map(
+                (s) => _FilterCheckbox(label: s, checked: s == 'Mathematics')),
+            const SizedBox(height: 16),
+            const Text('PRICE RANGE', style: AppTextStyles.overline),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Select language',
-                    style: TextStyle(
-                        fontSize: 13, color: AppColors.textTertiary)),
-                Spacer(),
-                Icon(Icons.keyboard_arrow_down,
-                    size: 18, color: AppColors.textTertiary),
+                Expanded(
+                  child: Text('\$15/hr',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
+                ),
+                Expanded(
+                  child: Text('\$85/hr',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Apply Filters',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14)),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: AppColors.primary,
+                  thumbColor: AppColors.primary),
+              child: Slider(value: 0.5, onChanged: (_) {}),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Text('AVAILABILITY', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: ['Morning', 'Afternoon', 'Evening', 'Weekend']
+                  .map((a) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: a == 'Morning'
+                              ? AppColors.primary.withOpacity(0.1)
+                              : AppColors.backgroundGray,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: a == 'Morning'
+                                  ? AppColors.primary
+                                  : AppColors.borderGray),
+                        ),
+                        child: Text(a,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: a == 'Morning'
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                            )),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            const Text('NATIVE LANGUAGE', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.borderGray),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('Select language',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textTertiary)),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down,
+                      size: 18, color: AppColors.textTertiary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Apply Filters',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -316,6 +332,7 @@ class _FilterCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -329,9 +346,11 @@ class _FilterCheckbox extends StatelessWidget {
                 activeColor: AppColors.primary),
           ),
           const SizedBox(width: 8),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary)),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: isMobile ? 11 : 13, color: AppColors.textSecondary)),
+          ),
         ],
       ),
     );
@@ -405,10 +424,11 @@ class _TutorGrid extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('Showing 24 of 4,342 tutors',
-                  style: TextStyle(
-                      fontSize: 13, color: AppColors.textSecondary)),
-              const Spacer(),
+              Expanded(
+                child: Text('Showing 24 of 4,342 tutors',
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.textSecondary))),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -417,13 +437,14 @@ class _TutorGrid extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.borderGray),
                 ),
-                child: const Row(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Highest Rated',
+                    const Text('Highest Rated',
                         style: TextStyle(
                             fontSize: 12, color: AppColors.textSecondary)),
-                    SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down,
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_arrow_down,
                         size: 16, color: AppColors.textTertiary),
                   ],
                 ),

@@ -101,9 +101,10 @@ class _NavLink extends StatelessWidget {
   const _NavLink({required this.label});
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+      padding: isMobile ? const EdgeInsets.symmetric(horizontal: 8) : const EdgeInsets.symmetric(horizontal: 12),
+      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
     );
   }
 }
@@ -112,63 +113,67 @@ class _FilterSidebar extends StatelessWidget {
   const _FilterSidebar();
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Container(
-      width: 260,
+      width: isMobile ? 220 : 260,
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: AppColors.shadowLight, blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Law Notes Catalog', style: AppTextStyles.heading3),
-          const SizedBox(height: 4),
-          const Text('Showing 1,245 verified study materials', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
-          const SizedBox(height: 20),
-          const Text('CATEGORIES', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          ...['Constitutional Law', 'Criminal Law', 'Contract Law', 'Tort Law', 'Property Law']
-              .map((c) => _FilterCheckbox(label: c, checked: c == 'Constitutional Law')),
-          const SizedBox(height: 16),
-          const Text('PRICE RANGE', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('\$0', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              Text('\$300+', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(activeTrackColor: AppColors.primary, thumbColor: AppColors.primary),
-            child: Slider(value: 0.6, onChanged: (_) {}),
-          ),
-          const SizedBox(height: 16),
-          const Text('RATINGS', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          ...List.generate(5, (i) => _RatingRow(stars: 5 - i, count: [234, 187, 98, 45, 12][i])),
-          const SizedBox(height: 16),
-          const Text('FILE FORMAT', style: AppTextStyles.overline),
-          const SizedBox(height: 8),
-          const _FilterCheckbox(label: 'PDF', checked: true),
-          const _FilterCheckbox(label: 'Word', checked: false),
-          const _FilterCheckbox(label: 'PowerPoint', checked: false),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Reset Filters', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Law Notes Catalog', style: AppTextStyles.heading3),
+            const SizedBox(height: 4),
+            const Text('Showing 1,245 verified study materials', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+            const SizedBox(height: 16),
+            const Text('CATEGORIES', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            ...['Constitutional Law', 'Criminal Law', 'Contract Law', 'Tort Law', 'Property Law']
+                .map((c) => _FilterCheckbox(label: c, checked: c == 'Constitutional Law')),
+            const SizedBox(height: 16),
+            const Text('PRICE RANGE', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text('\$0', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                Expanded(child: Text('\$300+', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+              ],
             ),
-          ),
-        ],
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(activeTrackColor: AppColors.primary, thumbColor: AppColors.primary),
+              child: Slider(value: 0.6, onChanged: (_) {}),
+            ),
+            const SizedBox(height: 16),
+            const Text('RATINGS', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            ...List.generate(5, (i) => _RatingRow(stars: 5 - i, count: [234, 187, 98, 45, 12][i])),
+            const SizedBox(height: 16),
+            const Text('FILE FORMAT', style: AppTextStyles.overline),
+            const SizedBox(height: 8),
+            const _FilterCheckbox(label: 'PDF', checked: true),
+            const _FilterCheckbox(label: 'Word', checked: false),
+            const _FilterCheckbox(label: 'PowerPoint', checked: false),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Reset Filters', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -180,6 +185,7 @@ class _FilterCheckbox extends StatelessWidget {
   const _FilterCheckbox({required this.label, required this.checked});
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -187,7 +193,9 @@ class _FilterCheckbox extends StatelessWidget {
           SizedBox(width: 18, height: 18,
             child: Checkbox(value: checked, onChanged: (_) {}, activeColor: AppColors.primary)),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Expanded(
+            child: Text(label, style: TextStyle(fontSize: isMobile ? 11 : 13, color: AppColors.textSecondary)),
+          ),
         ],
       ),
     );
