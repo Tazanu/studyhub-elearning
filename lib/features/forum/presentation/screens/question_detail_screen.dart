@@ -99,7 +99,7 @@ class _DesktopLayout extends StatelessWidget {
             ],
           ),
         ),
-        const _RightSidebar(),
+        const _RightSidebar(onBrowseQuestions: null),
       ],
     );
   }
@@ -683,6 +683,8 @@ class _DesktopAnswerFormState extends State<_DesktopAnswerForm> {
 }
 
 class _RightSidebar extends StatelessWidget {
+  final VoidCallback? onBrowseQuestions;
+  const _RightSidebar({this.onBrowseQuestions});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -714,7 +716,7 @@ class _RightSidebar extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => context.go('/forum'),
+                    onPressed: onBrowseQuestions ?? () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 10),
