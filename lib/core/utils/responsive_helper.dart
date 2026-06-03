@@ -85,9 +85,7 @@ class ResponsiveWidget extends StatelessWidget {
     final isTablet = MediaQuery.of(context).size.width >= 768 && 
                      MediaQuery.of(context).size.width < 1024;
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
-    final isWeb = Theme.of(context).platform == TargetPlatform.web;
 
-    if (web != null && isWeb) return web!;
     if (isDesktop && desktop != null) return desktop!;
     if (isTablet && tablet != null) return tablet!;
     if (isMobile && mobile != null) return mobile!;

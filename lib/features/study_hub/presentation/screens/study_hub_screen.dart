@@ -85,6 +85,327 @@ class StudyHubScreen extends ConsumerWidget {
   }
 }
 
+// ── Mobile Layout ─────────────────────────────────────────────────────────────
+class _MobileLayout extends ConsumerWidget {
+  final String greeting;
+  final WidgetRef ref;
+  const _MobileLayout({required this.greeting, required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        _MobileTopBar(greeting: greeting),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MobileFeaturedSection(ref: ref),
+                const SizedBox(height: 16),
+                _MobileTabRow(),
+                const SizedBox(height: 16),
+                const Text('Recent Questions', style: AppTextStyles.heading3),
+                const SizedBox(height: 12),
+                _MobileQuestionsList(ref: ref),
+                const SizedBox(height: 16),
+                _MobileActivitySection(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MobileTopBar extends StatelessWidget {
+  final String greeting;
+  const _MobileTopBar({required this.greeting});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        border: Border(bottom: BorderSide(color: AppColors.borderGray)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(greeting, style: AppTextStyles.heading3),
+          const SizedBox(height: 4),
+          Text('You have 3 study sessions today',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileFeaturedSection extends ConsumerWidget {
+  final WidgetRef ref;
+  const _MobileFeaturedSection({required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final featuredAsync = ref.watch(featuredGroupProvider);
+
+    return featuredAsync.when(
+      data: (group) => group != null
+          ? _MobileFeaturedCard(group: group)
+          : const _MobileFeaturedCard(group: {'name': 'Calculus II Midterm Prep', 'memberIds': [1,2,3], 'description': 'Intensive prep session'}),
+      loading: () => const _MobileFeaturedCard(group: {'name': 'Loading...', 'memberIds': [], 'description': ''}),
+      error: (_, __) => const _MobileFeaturedCard(group: {'name': 'Calculus II Midterm Prep', 'memberIds': [1,2,3], 'description': 'Intensive prep session'}),
+    );
+  }
+}
+
+class _MobileFeaturedCard extends StatelessWidget {
+  final Map<String, dynamic> group;
+  const _MobileFeaturedCard({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderGray),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 120,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12), topRight: Radius.circular(12),
+              ),
+            ),
+            child: const Center(child: Text('📚', style: TextStyle(fontSize: 48))),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text('HOT 🔥', style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFDC2626),
+                  )),
+                ),
+                const SizedBox(height: 8),
+                Text(group['name'] ?? 'Study Group', style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary,
+                )),
+                const SizedBox(height: 4),
+                Text(
+                  '${(group['memberIds'] as List?)?.length ?? 0} members',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  group['description'] ?? 'Join this study group to collaborate.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                AppButton(label: 'Join Now', isSmall: true, onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Joined ${group['name'] ?? 'study group'}!')),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileTabRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _MobileTab(label: 'All', isActive: false, onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Showing all content')),
+          );
+        }),
+        const SizedBox(width: 8),
+        _MobileTab(label: 'Groups', isActive: true, onTap: () => context.go('/groups')),
+        const SizedBox(width: 8),
+        _MobileTab(label: 'Q&A', isActive: false, onTap: () => context.go('/forum')),
+      ],
+    );
+  }
+}
+
+class _MobileTab extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback? onTap;
+  const _MobileTab({required this.label, required this.isActive, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: isActive ? null : Border.all(color: AppColors.borderGray),
+        ),
+        child: Text(label, style: TextStyle(
+          fontSize: 12, fontWeight: FontWeight.w600,
+          color: isActive ? Colors.white : AppColors.textSecondary,
+        )),
+      ),
+    );
+  }
+}
+
+class _MobileQuestionsList extends ConsumerWidget {
+  final WidgetRef ref;
+  const _MobileQuestionsList({required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final questionsAsync = ref.watch(dashboardQuestionsProvider);
+
+    return questionsAsync.when(
+      data: (questions) => questions.isEmpty
+          ? _staticMobileQuestions()
+          : Column(
+              children: questions
+                  .map((q) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _QuestionCard(
+                          votes: (q['votes'] ?? 0) as int,
+                          title: q['title'] ?? '',
+                          preview: q['preview'] ?? q['content'] ?? '',
+                          replies: (q['answers'] ?? 0) as int,
+                          views: (q['views'] ?? 0) as int,
+                          author: q['authorName'] ?? 'Anonymous',
+                          time: _timeAgo(q['createdAt']),
+                          tags: List<String>.from(q['tags'] ?? []),
+                        ),
+                      ))
+                  .toList(),
+            ),
+      loading: () => _staticMobileQuestions(),
+      error: (_, __) => _staticMobileQuestions(),
+    );
+  }
+
+  Widget _staticMobileQuestions() {
+    return Column(
+      children: const [
+        _QuestionCard(
+          votes: 42,
+          title: 'How do I solve differential equations?',
+          preview: 'I\'m struggling with the inverse Laplace transform...',
+          replies: 8, views: 234, author: 'Sarah M.', time: '2h ago',
+          tags: ['calculus', 'math'],
+        ),
+        SizedBox(height: 12),
+        _QuestionCard(
+          votes: 28,
+          title: 'Best resources for learning React?',
+          preview: 'Looking for up-to-date tutorials...',
+          replies: 15, views: 512, author: 'James K.', time: '4h ago',
+          tags: ['reactjs', 'javascript'],
+        ),
+        SizedBox(height: 12),
+        _QuestionCard(
+          votes: 19,
+          title: 'Understanding Big O notation?',
+          preview: 'Can someone explain O(n log n) vs O(n²)?',
+          replies: 6, views: 189, author: 'Priya S.', time: '6h ago',
+          tags: ['algorithms', 'cs'],
+        ),
+      ],
+    );
+  }
+
+  String _timeAgo(dynamic createdAt) {
+    if (createdAt == null) return '';
+    try {
+      final dt = createdAt is String
+          ? DateTime.parse(createdAt)
+          : (createdAt as dynamic).toDate();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+class _MobileActivitySection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Live Activity', style: AppTextStyles.heading4),
+        const SizedBox(height: 12),
+        const _ActivityItem(emoji: '📝', text: 'Sarah posted new notes', time: '2m ago'),
+        const _ActivityItem(emoji: '🎯', text: 'New quiz in Calculus group', time: '15m ago'),
+        const _ActivityItem(emoji: '💬', text: 'James answered your question', time: '1h ago'),
+        const _ActivityItem(emoji: '🏆', text: 'You earned a badge!', time: '2h ago'),
+      ],
+    );
+  }
+}
+
+// ── Desktop Layout ──────────────────────────────────────────────────────────────
+class _DesktopLayout extends StatelessWidget {
+  final String greeting;
+  final WidgetRef ref;
+  const _DesktopLayout({required this.greeting, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _LeftSidebar(ref: ref),
+        Expanded(
+          child: Column(
+            children: [
+              _TopBar(greeting: greeting),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _MainContent()),
+                    _RightSidebar(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Left Sidebar ──────────────────────────────────────────────────────────────
 class _LeftSidebar extends StatelessWidget {
   final WidgetRef ref;

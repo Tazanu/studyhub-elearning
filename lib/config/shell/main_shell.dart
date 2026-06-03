@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
-import '../utils/responsive_helper.dart';
+import '../../core/utils/responsive_helper.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
