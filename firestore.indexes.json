@@ -1,0 +1,67 @@
+indexes:
+  - collection: groups
+    fields:
+      - fieldPath: memberIds
+        mode: ARRAY_CONTAINS
+      - fieldPath: updatedAt
+        mode: DESCENDING
+
+  - collection: posts
+    fields:
+      - fieldPath: groupId
+        mode: ASCENDING
+      - fieldPath: createdAt
+        mode: DESCENDING
+
+  - collection: messages
+    fields:
+      - fieldPath: groupId
+        mode: ASCENDING
+      - fieldPath: createdAt
+        mode: ASCENDING
+
+  - collection: groupNotes
+    fields:
+      - fieldPath: groupId
+        mode: ASCENDING
+      - fieldPath: createdAt
+        mode: DESCENDING
+
+  - collection: questions
+    fields:
+      - fieldPath: tags
+        mode: ARRAY_CONTAINS
+      - fieldPath: createdAt
+        mode: DESCENDING
+
+  - collection: notes
+    fields:
+      - fieldPath: isVerified
+        mode: ASCENDING
+      - fieldPath: rating
+        mode: DESCENDING
+
+  - collection: notes
+    fields:
+      - fieldPath: isVerified
+        mode: ASCENDING
+      - fieldPath: category
+        mode: ASCENDING
+      - fieldPath: rating
+        mode: DESCENDING
+
+  - collection: tutors
+    fields:
+      - fieldPath: isVerified
+        mode: ASCENDING
+      - fieldPath: rating
+        mode: DESCENDING
+
+  - collection: tutors
+    fields:
+      - fieldPath: isVerified
+        mode: ASCENDING
+      - fieldPath: subjects
+        mode: ARRAY_CONTAINS
+      - fieldPath: rating
+        mode: DESCENDING
