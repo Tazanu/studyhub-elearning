@@ -95,6 +95,9 @@ class FirestoreService {
   static Future<DocumentSnapshot> getGroupNote(String noteId) =>
       groupNotes.doc(noteId).get();
 
+  static Future<DocumentSnapshot> getGroupNote(String noteId) =>
+      groupNotes.doc(noteId).get();
+
   // ── Questions ─────────────────────────────────────────────
   static Stream<QuerySnapshot> streamQuestions({String? tag}) {
     Query q = questions.orderBy('createdAt', descending: true);
@@ -104,6 +107,14 @@ class FirestoreService {
 
   static Future<DocumentReference> createQuestion(Map<String, dynamic> data) =>
       questions.add({...data, 'createdAt': FieldValue.serverTimestamp(), 'votes': 0, 'views': 0});
+
+  static Future<void> createQuestionAnswer(String questionId, Map<String, dynamic> data) {
+    final questionRef = questions.doc(questionId);
+    return questionRef.collection('answers').add({...data, 'createdAt': FieldValue.serverTimestamp()});
+  }
+
+  static Future<void> incrementAnswerCount(String questionId) =>
+      questions.doc(questionId).update({'answers': FieldValue.increment(1)});
 
   static Future<void> voteQuestion(String qId, String uid, bool upvote) =>
       questions.doc(qId).update({

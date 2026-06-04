@@ -17,6 +17,7 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
   final _descriptionController = TextEditingController();
   final _subjectController = TextEditingController();
   bool _isPrivate = false;
+  bool _isCreating = false;
 
   @override
   void dispose() {
@@ -32,26 +33,40 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
     final formState = ref.read(createGroupFormProvider);
     if (!formState.isValid) return;
 
+    setState(() => _isCreating = true);
+    
     final groupId = const Uuid().v4();
     
-    await ref.read(createGroupProvider({
-      'id': groupId,
-      'name': formState.name.trim(),
-      'description': formState.description.trim(),
-      'subject': formState.subject.trim(),
-      'isPrivate': formState.isPrivate,
-      'createdAt': DateTime.now().toIso8601String(),
-    }).future);
+    try {
+      await ref.read(createGroupProvider({
+        'id': groupId,
+        'name': formState.name.trim(),
+        'description': formState.description.trim(),
+        'subject': formState.subject.trim(),
+        'isPrivate': formState.isPrivate,
+        'createdAt': DateTime.now().toIso8601String(),
+      }).future);
 
-    if (mounted) {
       ref.read(createGroupFormProvider.notifier).reset();
       _nameController.clear();
       _descriptionController.clear();
       _subjectController.clear();
-      setState(() => _isPrivate = false);
+      setState(() {
+        _isPrivate = false;
+        _isCreating = false;
+      });
       Navigator.pop(context);
+      
+      // Select the newly created group
+      ref.read(selectedGroupIdProvider.notifier).state = groupId;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Group created successfully!'), backgroundColor: AppColors.accent),
+      );
+    } catch (e) {
+      setState(() => _isCreating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating group: $e'), backgroundColor: AppColors.error),
       );
     }
   }
