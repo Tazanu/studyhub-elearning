@@ -1,0 +1,123 @@
+:root {
+  --accent-blue: #0066ff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --bg-main: #ffffff;
+  --bg-card: #f8f9fa;
+  --border-subtle: #e5e7eb;
+}
+
+[data-theme="dark"] {
+  --accent-blue: #60a5fa;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --border-subtle: #334155;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes scale {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale {
+  animation: scale 0.3s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-card);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Responsive layout adjustments for sidebar + navbar */
+.tutor-page-wrapper,
+.tutors-listing-wrapper {
+  margin-left: 240px;
+  padding-top: 80px;
+}
+
+@media (max-width: 1024px) {
+  .tutor-page-wrapper,
+  .tutors-listing-wrapper {
+    margin-left: 0;
+    padding-top: 72px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tutor-page-wrapper,
+  .tutors-listing-wrapper {
+    padding-top: 64px;
+  }
+}

@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model answers {
+  id            Int               @id @default(autoincrement())
+  content       String
+  votes         Int?              @default(0)
+  is_accepted   Boolean?          @default(false)
+  question_id   Int
+  author_id     Int
+  audio_url     String?           @db.VarChar(500)
+  images        String[]          @default([])
+  is_edited     Boolean?          @default(false)
+  created_at    DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?         @default(now()) @db.Timestamp(6)
+  users         users             @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions     questions         @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  answer_votes  answer_votes[]
+  answer_comments answer_comments[]
+}
+
+model bookings {
+  id             Int       @id @default(autoincrement())
+  student_id     Int
+  tutor_id       Int
+  subject        String    @db.VarChar(255)
+  session_date   DateTime  @db.Date
+  start_time     DateTime  @db.Time(6)
+  end_time       DateTime  @db.Time(6)
+  duration_hours Decimal   @db.Decimal(4, 2)
+  total_amount   Decimal   @db.Decimal(10, 2)
+  status         String?   @default("pending") @db.VarChar(50)
+  meeting_link   String?   @db.VarChar(500)
+  notes          String?
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  updated_at     DateTime? @default(now()) @db.Timestamp(6)
+  users          users     @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tutors         tutors    @relation(fields: [tutor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model group_messages {
+  id                   Int              @id @default(autoincrement())
+  group_id             Int
+  user_id              Int
+  message              String
+  file_url             String?          @db.VarChar(500)
+  file_type            String?          @db.VarChar(50)
+  reply_to             Int?
+  is_edited            Boolean?         @default(false)
+  created_at           DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?        @default(now()) @db.Timestamp(6)
+  groups               groups           @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  group_messages       group_messages?  @relation("group_messagesTogroup_messages", fields: [reply_to], references: [id], onUpdate: NoAction)
+  other_group_messages group_messages[] @relation("group_messagesTogroup_messages")
+  users                users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model groups {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  description         String
+  subject             String                @db.VarChar(255)
+  max_members         Int?                  @default(20)
+  current_members     Int?                  @default(1)
+  created_by          Int
+  requires_approval   Boolean?              @default(true)
+  is_active           Boolean?              @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  group_messages      group_messages[]
+  users               users                 @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notes               notes[]
+  user_groups         user_groups[]
+  group_read_status   group_read_status[]
+  group_join_requests group_join_requests[]
+  notifications       notifications[]
+}
+
+model notes {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  description String
+  subject     String    @db.VarChar(255)
+  file_path   String    @db.VarChar(500)
+  file_type   String    @db.VarChar(50)
+  downloads   Int?      @default(0)
+  uploaded_by Int
+  group_id    Int?
+  is_premium  Boolean?  @default(false)
+  price       Decimal?  @default(0.00) @db.Decimal(10, 2)
+  is_active   Boolean?  @default(true)
+  tags        String[]  @default([])
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  groups      groups?   @relation(fields: [group_id], references: [id], onUpdate: NoAction)
+  users       users     @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model questions {
+  id                 Int                  @id @default(autoincrement())
+  title              String               @db.VarChar(255)
+  content            String
+  subject            String               @db.VarChar(255)
+  category           String?              @db.VarChar(100)
+  tags               String[]             @default([])
+  votes              Int?                 @default(0)
+  answers_count      Int?                 @default(0)
+  views              Int?                 @default(0)
+  is_solved          Boolean?             @default(false)
+  author_id          Int
+  audio_url          String?              @db.VarChar(500)
+  images             String[]             @default([])
+  is_edited          Boolean?             @default(false)
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamp(6)
+  answers            answers[]
+  users              users                @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_votes     question_votes[]
+  question_bookmarks question_bookmarks[]
+  question_followers question_followers[]
+  
+  @@index([subject, category])
+  @@index([created_at])
+  @@index([votes])
+}
+
+model transactions {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  amount      Decimal   @db.Decimal(10, 2)
+  type        String    @db.VarChar(50)
+  status      String?   @default("pending") @db.VarChar(50)
+  reference   String?   @db.VarChar(255)
+  description String?
+  metadata    Json?     @default("{}")
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model tutor_availability {
+  id           Int       @id @default(autoincrement())
+  tutor_id     Int
+  day_of_week  String    @db.VarChar(20)
+  start_time   DateTime  @db.Time(6)
+  end_time     DateTime  @db.Time(6)
+  is_available Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+  tutors       tutors    @relation(fields: [tutor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model tutors {
+  id                   Int                  @id @default(autoincrement())
+  user_id              Int                  @unique
+  bio                  String
+  subjects             String[]             @default([])
+  hourly_rate          Decimal              @default(500) @db.Decimal(10, 2)
+  years_experience     String?              @db.VarChar(20)
+  rating               Decimal?             @default(0.00) @db.Decimal(3, 2)
+  total_sessions       Int?                 @default(0)
+  status               String               @default("pending") @db.VarChar(20)
+  is_active            Boolean?             @default(true)
+  availability         Json?
+  proof_document_url   String?              @db.VarChar(500)
+  applied_at           DateTime?            @default(now()) @db.Timestamptz(6)
+  created_at           DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?            @default(now()) @db.Timestamp(6)
+  bookings             bookings[]
+  tutor_availability   tutor_availability[]
+  users                users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_groups {
+  user_id   Int
+  group_id  Int
+  role      String?   @default("member") @db.VarChar(50)
+  joined_at DateTime? @default(now()) @db.Timestamp(6)
+  groups    groups    @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users     users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, group_id])
+}
+
+model group_read_status {
+  user_id      Int
+  group_id     Int
+  last_read_at DateTime @default(now()) @db.Timestamp(6)
+  users        users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups       groups   @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, group_id])
+}
+
+model users {
+  id                  Int                   @id @default(autoincrement())
+  email               String                @unique @db.VarChar(255)
+  password            String                @db.VarChar(255)
+  first_name          String                @db.VarChar(100)
+  last_name           String                @db.VarChar(100)
+  university          String?               @db.VarChar(255)
+  field_of_study      String?               @db.VarChar(255)
+  reputation          Int?                  @default(100)
+  profile_picture     String?               @db.VarChar(255)
+  bio                 String?
+  role                String?               @default("user") @db.VarChar(50)
+  is_active           Boolean?              @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  answers             answers[]
+  bookings            bookings[]
+  group_messages      group_messages[]
+  groups              groups[]
+  notes               notes[]
+  questions           questions[]
+  transactions        transactions[]
+  tutors              tutors?
+  user_groups         user_groups[]
+  group_read_status   group_read_status[]
+  group_join_requests group_join_requests[]
+  notifications       notifications[]
+  question_votes        question_votes[]
+  answer_votes          answer_votes[]
+  question_bookmarks    question_bookmarks[]
+  question_followers    question_followers[]
+  answer_comments       answer_comments[]
+  premium_subscriptions premium_subscriptions[]
+  premium_notes         premium_notes[]
+  purchased_notes       purchased_notes[]
+}
+
+model group_join_requests {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  group_id     Int
+  status       String    @default("pending") @db.VarChar(20)
+  requested_at DateTime  @default(now()) @db.Timestamp(6)
+  processed_at DateTime? @db.Timestamp(6)
+  processed_by Int?
+  
+  users  users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups groups @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@unique([user_id, group_id])
+  @@index([group_id, status])
+}
+
+model notifications {
+  id               Int       @id @default(autoincrement())
+  user_id          Int
+  type             String    @db.VarChar(50)
+  message          String    @db.VarChar(500)
+  related_group_id Int?
+  related_user_id  Int?
+  is_read          Boolean   @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  
+  users  users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups groups? @relation(fields: [related_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@index([user_id, is_read])
+  @@index([user_id, created_at])
+}
+
+
+model question_votes {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  question_id Int
+  vote_type   Int       @default(1)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  
+  users     users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@unique([user_id, question_id])
+  @@index([question_id])
+}
+
+model answer_votes {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  answer_id  Int
+  vote_type  Int      @default(1)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  
+  users   users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  answers answers @relation(fields: [answer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@unique([user_id, answer_id])
+  @@index([answer_id])
+}
+
+model question_bookmarks {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  question_id Int
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  
+  users     users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@unique([user_id, question_id])
+  @@index([user_id])
+}
+
+model question_followers {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  question_id Int
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  
+  users     users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@unique([user_id, question_id])
+  @@index([question_id])
+}
+
+model answer_comments {
+  id         Int       @id @default(autoincrement())
+  answer_id  Int
+  user_id    Int
+  content    String    @db.VarChar(500)
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @default(now()) @db.Timestamp(6)
+  
+  answers answers @relation(fields: [answer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users   users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@index([answer_id])
+}
+
+model premium_subscriptions {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  expires_at DateTime
+  status     String   @default("active") @db.VarChar(20)
+  tx_ref     String?  @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+}
+
+model premium_notes {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String
+  subject     String   @db.VarChar(255)
+  file_path   String   @db.VarChar(500)
+  file_type   String   @db.VarChar(50)
+  price       Decimal  @default(0.00) @db.Decimal(10, 2)
+  downloads   Int      @default(0)
+  tags        String[] @default([])
+  uploaded_by Int
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+
+  users              users                @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  purchased_notes    purchased_notes[]
+
+  @@index([uploaded_by])
+}
+
+model purchased_notes {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  premium_note_id Int
+  tx_ref          String?  @db.VarChar(255)
+  amount_paid     Decimal  @db.Decimal(10, 2)
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+
+  users         users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  premium_notes premium_notes @relation(fields: [premium_note_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, premium_note_id])
+  @@index([user_id])
+}

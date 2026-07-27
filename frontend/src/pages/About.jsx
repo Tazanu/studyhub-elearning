@@ -1,0 +1,188 @@
+import { useRef } from 'react';
+import { UserPlus, Layers, TrendingUp } from 'lucide-react';
+import { motion, useReducedMotion, useInView } from 'framer-motion';
+import Testimonials from '../components/Testimonials';
+import HomeFooter from '../components/home/HomeFooter';
+
+/* ── shared variants ──────────────────────────────────────────── */
+const fadeUp = (delay = 0) => ({
+    hidden: { opacity: 0, y: 26 },
+    show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay } },
+});
+
+const stagger = (s = 0.12, delay = 0) => ({
+    hidden: {},
+    show:   { transition: { staggerChildren: s, delayChildren: delay } },
+});
+
+const childFadeUp = {
+    hidden: { opacity: 0, y: 24 },
+    show:   { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+};
+
+/* ── hero variants ────────────────────────────────────────────── */
+const heroContainer = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.13, delayChildren: 0.05 } },
+};
+const heroItemNormal  = { hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } };
+const heroItemReduced = { hidden: { opacity: 1, y: 0 },  show: { opacity: 1, y: 0 } };
+
+/* ── steps data ───────────────────────────────────────────────── */
+const steps = [
+    { Icon: UserPlus,   color: '#60a5fa', bg: 'rgba(96,165,250,0.1)',  step: '01', title: 'Create your account',        desc: "Sign up in under a minute. Set your university, field of study, and what you're looking for. Help or community." },
+    { Icon: Layers,     color: '#34d399', bg: 'rgba(52,211,153,0.1)',  step: '02', title: 'Join groups & find resources', desc: "Browse study groups in your department, download shared notes, ask questions, or book a tutor for a topic you're stuck on." },
+    { Icon: TrendingUp, color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', step: '03', title: 'Improve & succeed',            desc: 'Stay consistent with a community holding you accountable. Better grades, less stress, fewer all-nighters.' },
+];
+
+export default function About() {
+    const reduced = useReducedMotion();
+    const heroItem = reduced ? heroItemReduced : heroItemNormal;
+
+    const missionRef  = useRef(null);
+    const stepsRef    = useRef(null);
+    const missionView = useInView(missionRef, { once: true, margin: '-80px' });
+    const stepsView   = useInView(stepsRef,   { once: true, margin: '-80px' });
+
+    return (
+        <div style={{ background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+
+            {/* ── PAGE HERO ─────────────────────────────────────── */}
+            <section className="pt-40 pb-24 px-6 text-center relative overflow-hidden">
+                <div aria-hidden style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 0 }}>
+                    <div style={{ position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,102,255,0.08) 0%, transparent 70%)' }} />
+                </div>
+
+                <motion.div
+                    style={{ position: 'relative', zIndex: 1 }}
+                    variants={heroContainer}
+                    initial="hidden"
+                    animate="show"
+                >
+                    <motion.p
+                        variants={heroItem}
+                        className="text-sm font-semibold uppercase tracking-widest mb-4"
+                        style={{ color: 'var(--accent-blue)' }}
+                    >
+                        Our story
+                    </motion.p>
+
+                    <motion.h1
+                        variants={heroItem}
+                        className="font-bold mb-6 gradient-text"
+                        style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(2.5rem, 6vw, 4rem)', letterSpacing: '-0.03em', lineHeight: 1.1, display: 'block' }}
+                    >
+                        Built for students,<br />by students
+                    </motion.h1>
+
+                    <motion.p
+                        variants={heroItem}
+                        className="mx-auto text-lg"
+                        style={{ maxWidth: 540, lineHeight: 1.75, color: 'var(--text-secondary)' }}
+                    >
+                        StudyHub was born out of a simple frustration: students had
+                        no central place to connect, share knowledge, and support each other's academic growth.
+                    </motion.p>
+                </motion.div>
+            </section>
+
+            {/* ── MISSION ───────────────────────────────────────── */}
+            <section
+                ref={missionRef}
+                className="py-24 px-6 border-t border-b"
+                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}
+            >
+                <motion.div
+                    className="max-w-4xl mx-auto grid md:grid-cols-2 gap-16 items-center"
+                    variants={reduced ? {} : stagger(0.15, 0)}
+                    initial="hidden"
+                    animate={missionView ? 'show' : 'hidden'}
+                >
+                    <motion.div variants={reduced ? {} : childFadeUp}>
+                        <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--accent-blue)' }}>
+                            Our mission
+                        </p>
+                        <h2 className="font-bold mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.75rem, 3.5vw, 2.4rem)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                            Remove every barrier between a student and their potential
+                        </h2>
+                        <p className="leading-relaxed" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                            We believe the biggest obstacles to academic success aren't intelligence.
+                            They're access. Access to people who've already solved the problem you're
+                            stuck on. Access to notes from a lecture you missed. Access to a tutor who
+                            speaks your context.
+                        </p>
+                    </motion.div>
+
+                    <motion.div variants={reduced ? {} : childFadeUp}>
+                        <p className="leading-relaxed mb-5" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                            StudyHub is our answer to that. A single platform where the knowledge
+                            that already exists inside a university community stops being siloed in
+                            private WhatsApp groups and hard drives. It becomes genuinely accessible.
+                        </p>
+                        <p className="leading-relaxed" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                            We started with a small community because that's where we live. We're building for
+                            students who deal with infrastructure gaps, expensive data, and academic
+                            systems that often move slower than the students inside them.
+                        </p>
+                    </motion.div>
+                </motion.div>
+            </section>
+
+            {/* ── HOW IT WORKS ──────────────────────────────────── */}
+            <section ref={stepsRef} className="py-32 px-6">
+                <div className="max-w-5xl mx-auto">
+                    <motion.div
+                        className="text-center mb-16"
+                        variants={reduced ? {} : fadeUp(0)}
+                        initial="hidden"
+                        animate={stepsView ? 'show' : 'hidden'}
+                    >
+                        <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--accent-blue)' }}>
+                            How it works
+                        </p>
+                        <h2 className="font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.75rem, 3.5vw, 2.4rem)', letterSpacing: '-0.02em' }}>
+                            Three steps to academic momentum
+                        </h2>
+                    </motion.div>
+
+                    <motion.div
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                        variants={reduced ? {} : stagger(0.12, 0.1)}
+                        initial="hidden"
+                        animate={stepsView ? 'show' : 'hidden'}
+                    >
+                        {steps.map(({ Icon, color, bg, step, title, desc }) => (
+                            <motion.div
+                                key={step}
+                                variants={reduced ? {} : childFadeUp}
+                                className="rounded-2xl p-8 border"
+                                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}
+                            >
+                                <div className="text-5xl font-bold mb-6 select-none" style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'var(--border-subtle)', lineHeight: 1 }}>
+                                    {step}
+                                </div>
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: bg }}>
+                                    <Icon size={24} color={color} strokeWidth={1.75} />
+                                </div>
+                                <h3 className="font-semibold mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.05rem' }}>
+                                    {title}
+                                </h3>
+                                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+                                    {desc}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* ── TESTIMONIALS ──────────────────────────────────── */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <Testimonials />
+            </div>
+
+            <HomeFooter />
+
+        </div>
+    );
+}

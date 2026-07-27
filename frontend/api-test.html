@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connection Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #10b98120; border: 1px solid #10b981; }
+        .error { background: #ef444420; border: 1px solid #ef4444; }
+        .loading { background: #3b82f620; border: 1px solid #3b82f6; }
+        pre { background: #000; padding: 10px; overflow: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Connection Diagnostics</h1>
+    <p>Testing connection to backend at <code>http://localhost:5000/api</code></p>
+    
+    <div id="test1" class="test loading">
+        <h3>Test 1: Health Check</h3>
+        <p>Checking <code>GET /health</code>...</p>
+        <pre id="result1">Loading...</pre>
+    </div>
+    
+    <div id="test2" class="test loading">
+        <h3>Test 2: Groups Endpoint</h3>
+        <p>Checking <code>GET /api/groups</code>...</p>
+        <pre id="result2">Loading...</pre>
+    </div>
+
+    <script>
+        async function test(url, id) {
+            const testDiv = document.getElementById(`test${id}`);
+            const resultPre = document.getElementById(`result${id}`);
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                testDiv.className = 'test success';
+                resultPre.textContent = `✅ SUCCESS (${response.status})\n\n` + JSON.stringify(data, null, 2);
+            } catch (error) {
+                testDiv.className = 'test error';
+                resultPre.textContent = `❌ ERROR\n\n${error.message}\n\nCheck:\n1. Is backend running? (npm run dev in backend folder)\n2. Backend console for errors\n3. Browser console (F12) for CORS errors`;
+            }
+        }
+
+        // Run tests
+        test('http://localhost:5000/health', 1);
+        test('http://localhost:5000/api/groups', 2);
+    </script>
+</body>
+</html>

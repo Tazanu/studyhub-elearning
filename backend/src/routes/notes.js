@@ -1,0 +1,141 @@
+const express = require('express');
+const path = require('path');
+const prisma = require('../prisma');
+const authenticate = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+const router = express.Router();
+
+// ===================== GET ALL NOTES =====================
+router.get('/', async (req, res) => {
+    try {
+        const { subject, group_id, uploaded_by } = req.query;
+
+        const where = { is_active: true };
+        if (subject) where.subject = subject;
+        if (group_id) where.group_id = parseInt(group_id);
+        if (uploaded_by) where.uploaded_by = parseInt(uploaded_by);
+
+        const notes = await prisma.notes.findMany({
+            where,
+            include: {
+                users: {
+                    select: { id: true, first_name: true, last_name: true }
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        res.json(notes);
+    } catch (error) {
+        console.error('Get notes error:', error);
+        res.status(500).json({ error: 'Failed to fetch notes' });
+    }
+});
+
+// ===================== GET SINGLE NOTE =====================
+router.get('/:id', async (req, res) => {
+    try {
+        const note = await prisma.notes.findUnique({
+            where: { id: parseInt(req.params.id) },
+            include: {
+                users: {
+                    select: { id: true, first_name: true, last_name: true }
+                },
+                groups: {
+                    select: { id: true, name: true }
+                }
+            }
+        });
+
+        if (!note) {
+            return res.status(404).json({ error: 'Note not found' });
+        }
+
+        res.json(note);
+    } catch (error) {
+        console.error('Get note error:', error);
+        res.status(500).json({ error: 'Failed to fetch note' });
+    }
+});
+
+// ===================== UPLOAD NOTE =====================
+router.post('/', authenticate, upload.single('file'), async (req, res) => {
+    try {
+        const { title, description, subject, groupId, isPremium, price, tags } = req.body;
+
+        if (!title || !description || !subject) {
+            return res.status(400).json({ error: 'Title, description, and subject are required' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'A file is required' });
+        }
+
+        if (isPremium === 'true') {
+            const user = await prisma.users.findUnique({ where: { id: req.userId }, select: { role: true } });
+            if (!user || !['admin', 'tutor'].includes(user.role)) {
+                return res.status(403).json({ error: 'Only tutors and admins can upload premium notes' });
+            }
+        }
+
+        const note = await prisma.notes.create({
+            data: {
+                title,
+                description,
+                subject,
+                file_path: `/uploads/${req.file.filename}`,
+                file_type: path.extname(req.file.originalname).replace('.', ''),
+                uploaded_by: req.userId,
+                group_id: groupId ? parseInt(groupId) : null,
+                is_premium: isPremium === 'true',
+                price: isPremium === 'true' ? parseFloat(price) || 0 : 0,
+                tags: tags ? tags.split(',').map(t => t.trim()) : []
+            }
+        });
+
+        res.status(201).json({ success: true, note });
+    } catch (error) {
+        console.error('Upload note error:', error);
+        res.status(500).json({ error: 'Failed to upload note' });
+    }
+});
+
+// ===================== DOWNLOAD NOTE (increment counter) =====================
+router.post('/:id/download', async (req, res) => {
+    try {
+        const note = await prisma.notes.update({
+            where: { id: parseInt(req.params.id) },
+            data: { downloads: { increment: 1 } }
+        });
+
+        res.json({ success: true, file_path: note.file_path });
+    } catch (error) {
+        console.error('Download note error:', error);
+        res.status(500).json({ error: 'Failed to process download' });
+    }
+});
+
+// ===================== DELETE NOTE =====================
+router.delete('/:id', authenticate, async (req, res) => {
+    try {
+        const note = await prisma.notes.findUnique({ where: { id: parseInt(req.params.id) } });
+
+        if (!note) {
+            return res.status(404).json({ error: 'Note not found' });
+        }
+
+        if (note.uploaded_by !== req.userId) {
+            return res.status(403).json({ error: 'Not authorized to delete this note' });
+        }
+
+        await prisma.notes.delete({ where: { id: parseInt(req.params.id) } });
+
+        res.json({ success: true, message: 'Note deleted' });
+    } catch (error) {
+        console.error('Delete note error:', error);
+        res.status(500).json({ error: 'Failed to delete note' });
+    }
+});
+
+module.exports = router;
